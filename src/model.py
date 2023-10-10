@@ -1,4 +1,5 @@
-import numpy as np
+import numpy as cp
+import cupy as cp 
 
 
 # neural network class
@@ -25,14 +26,14 @@ class neuralNetwork:
         self.lr = learning_rate     # learning rate
         
         # init the weight of input layers to hidden layers
-        self.wih = np.random.normal(0.0, pow(self.input_nodes, -0.5),
+        self.wih = cp.random.normal(0.0, pow(self.input_nodes, -0.5),
                                     (self.hidden_nodes, self.input_nodes))
         # init the weight of hidden layers to output layers
-        self.who = np.random.normal(0.0, pow(self.hidden_nodes, -0.5),
+        self.who = cp.random.normal(0.0, pow(self.hidden_nodes, -0.5),
                                     (self.output_nodes, self.hidden_nodes))
         
         # activation function is the sigmoid function
-        self.activation_function = lambda x: 1. / (1 + np.exp(-x))
+        self.activation_function = lambda x: 1. / (1 + cp.exp(-x))
 
 
     def forward(self, input_feature):
@@ -41,15 +42,15 @@ class neuralNetwork:
         :param input_feature: single input image, flattened [784, ]
         """
         # convert inputs list to 2d array
-        self.inputs = np.array(input_feature, ndmin=2).T
+        self.inputs = cp.array(input_feature, ndmin=2).T
 
         # calculate signals into hidden layer
-        hidden_inputs = np.dot(self.wih, self.inputs)
+        hidden_inputs = cp.dot(self.wih, self.inputs)
         # calculate the signals emerging from hidden layer
         self.hidden_outputs = self.activation_function(hidden_inputs)
 
         # calculate signals into final output layer
-        final_inputs = np.dot(self.who, self.hidden_outputs)
+        final_inputs = cp.dot(self.who, self.hidden_outputs)
         # calculate the signals emerging from final output layer
         self.final_outputs = self.activation_function(final_inputs)
         
@@ -59,23 +60,23 @@ class neuralNetwork:
         Propagate backwards
         :param targets_list: output onehot code of a single image, [10, ]
         """
-        targets = np.array(targets_list, ndmin=2).T
+        targets = cp.array(targets_list, ndmin=2).T
 
         # loss
-        loss = np.sum(np.square(self.final_outputs - targets)) / 2
+        loss = cp.sum(cp.square(self.final_outputs - targets)) / 2
 
         # output layer error is the (final_outputs - target)
         output_loss = self.final_outputs - targets
 
         # hidden layer error is the output_errors, split by weights, recombined at hidden nodes
-        hidden_loss = np.dot(self.who.T, output_loss)
+        hidden_loss = cp.dot(self.who.T, output_loss)
 
         # update the weights for the links between the hidden and output layers
-        self.who -= self.lr * np.dot((output_loss * self.final_outputs * (1.0 - self.final_outputs)),
-                                     np.transpose(self.hidden_outputs))
+        self.who -= self.lr * cp.dot((output_loss * self.final_outputs * (1.0 - self.final_outputs)),
+                                     cp.transpose(self.hidden_outputs))
 
         # update the weights for the links between the input and hidden layers
-        self.wih -= self.lr * np.dot((hidden_loss * self.hidden_outputs * (1.0 - self.hidden_outputs)),
-                                     np.transpose(self.inputs))
+        self.wih -= self.lr * cp.dot((hidden_loss * self.hidden_outputs * (1.0 - self.hidden_outputs)),
+                                     cp.transpose(self.inputs))
 
         return loss

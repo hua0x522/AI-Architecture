@@ -17,7 +17,10 @@ def evaluate(net, features, labels):
     """
     # record the correct times of classification
     cnt = 0
-    for i, feat in enumerate(features):
+    batch_size = 30
+    batch = features.shape[0] // batch_size
+    for i in range(batch):
+        feat = features[i * batch_size: (i+1) * batch_size, :]
         # then scale data to range from 0.01 to 1.0
         feat = (feat / 255.0 * 0.99) + 0.01
 
@@ -26,9 +29,10 @@ def evaluate(net, features, labels):
         outputs = net.final_outputs
 
         # the index of the highest value corresponds to the label
-        res = np.argmax(outputs)
-        if res == labels[i]:
-            cnt += 1
+        res = np.argmax(outputs, axis=0)
+        for j in range(batch_size):
+            if res[j] == labels[i * batch_size + j]:
+                cnt += 1
 
     print("Accuracy: {:.2f}".format(cnt / len(features)))
 
@@ -47,23 +51,28 @@ def train(net, features, labels):
     for e in range(epochs):
         # go through all records in the training data set
         loss = 0
+        batch_size = 30
+        batch = features.shape[0] // batch_size 
 
-        for i, feat in enumerate(features):
+        for i in range(batch):
+            feat = features[i * batch_size: (i+1) * batch_size, :]
             # scale the inputs
             feat = (feat / 255.0 * 0.99) + 0.01
 
             # create the target output values (all 0.01, except the desired label which is 0.99)
-            targets = np.zeros(net.output_nodes) + 0.01
+            targets = np.zeros([batch_size, net.output_nodes]) + 0.01
 
             # all_values[0] is the target label for this record
-            targets[labels[i]] = 0.99
+            for j in range(batch_size):
+                targets[j, labels[i * batch_size + j]] = 0.99
+            # targets[labels[i]] = 0.99
 
             # Forward network and propagate backward
             net.forward(feat)
             loss += net.backpropagation(targets)
 
             # print loss
-            if (i + 1) % 5000 == 0:
+            if (i + 1) % (5000 // batch_size) == 0:
                 print("Epoch {:05d} | Loss {:.4f}".format(e, loss / 1000))
                 loss = 0
 
